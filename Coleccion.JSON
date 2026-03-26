@@ -1,0 +1,120 @@
+{
+  "info": {
+    "name": "Coleccion Meta 3.1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Request1 - GET Obtener todas las tareas",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:3000/api/tareas",
+        "description": "Obtiene la lista completa de tareas almacenadas. Devuelve un arreglo con todas las tareas y el total. Código esperado: 200."
+      }
+    },
+    {
+      "name": "Request2 - GET Obtener tarea por ID",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:3000/api/tareas/1",
+        "description": "Obtiene una tarea específica buscándola por su ID. Si existe devuelve los datos de esa tarea. Código esperado: 200."
+      }
+    },
+    {
+      "name": "Request3 - POST Crear nueva tarea",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/tareas",
+        "description": "Crea una nueva tarea enviando titulo y completada en el body. El servidor asigna un ID autoincremental. Código esperado: 201.",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Nueva tarea\",\n  \"completada\": false\n}",
+          "options": { "raw": { "language": "json" } }
+        }
+      }
+    },
+    {
+      "name": "Request4 - PUT Actualizar tarea completa",
+      "request": {
+        "method": "PUT",
+        "url": "http://localhost:3000/api/tareas/1",
+        "description": "Reemplaza completamente la tarea con ID 1. Se deben enviar todos los campos obligatoriamente. Código esperado: 200.",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"titulo\": \"Tarea actualizada completamente\",\n  \"completada\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        }
+      }
+    },
+    {
+      "name": "Request5 - PATCH Actualizar tarea parcialmente",
+      "request": {
+        "method": "PATCH",
+        "url": "http://localhost:3000/api/tareas/1",
+        "description": "Actualiza únicamente los campos enviados en el body, conservando el resto sin cambios. Código esperado: 200.",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"completada\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        }
+      }
+    },
+    {
+      "name": "Request6 - DELETE Eliminar tarea",
+      "request": {
+        "method": "DELETE",
+        "url": "http://localhost:3000/api/tareas/3",
+        "description": "Elimina permanentemente la tarea con ID 3. Devuelve la tarea eliminada como confirmación. Código esperado: 200."
+      }
+    },
+    {
+      "name": "Request7 - GET Buscar tareas por título",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:3000/api/tareas/buscar?q=express",
+        "description": "Busca tareas cuyo título contenga la palabra 'express', sin distinguir mayúsculas o minúsculas. Código esperado: 200."
+      }
+    },
+    {
+      "name": "Request8 - GET Obtener tareas en formato texto",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:3000/api/tareas?formato=text",
+        "description": "Obtiene todas las tareas en formato texto plano en lugar de JSON. Código esperado: 200."
+      }
+    },
+    {
+      "name": "Request9 - GET Tarea no encontrada (404)",
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:3000/api/tareas/999",
+        "description": "Intenta obtener una tarea con un ID que no existe. Verifica el manejo de recursos no encontrados. Código esperado: 404."
+      }
+    },
+    {
+      "name": "Request10 - POST Crear sin título (400)",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/tareas",
+        "description": "Intenta crear una tarea sin enviar el campo titulo. Verifica que el servidor valide los datos de entrada. Código esperado: 400.",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"completada\": false\n}",
+          "options": { "raw": { "language": "json" } }
+        }
+      }
+    },
+    {
+      "name": "Request11 - DELETE Eliminar tarea inexistente (404)",
+      "request": {
+        "method": "DELETE",
+        "url": "http://localhost:3000/api/tareas/999",
+        "description": "Intenta eliminar una tarea con un ID inexistente. Verifica que el servidor responda correctamente. Código esperado: 404."
+      }
+    }
+  ]
+}
