@@ -1,0 +1,1099 @@
+openapi: 3.0.0
+info:
+  title: API de Gestión de Tareas - Meta3.1
+  description: |
+    API RESTful completa para gestión de tareas, personas y tags con autenticación JWT.
+    
+    **Características:**
+    - CRUD de Tareas, Personas y Tags
+    - Relaciones complejas (1:N, N:M)
+    - Gestión de usuarios con roles
+    - Autenticación basada en JWT
+    - Búsquedas y filtros avanzados
+  version: 1.0.0
+  contact:
+    name: Meta3.1 Project
+    email: contact@meta31.dev
+  license:
+    name: ISC
+
+servers:
+  - url: http://localhost:3000/api
+    description: Servidor de desarrollo
+  - url: https://api.meta31.dev/api
+    description: Servidor de producción
+
+tags:
+  - name: Autenticación
+    description: Endpoints de autenticación y autorización
+  - name: Personas
+    description: Gestión de personas y sus relaciones
+  - name: Tareas
+    description: Gestión de tareas
+  - name: Tags
+    description: Gestión de etiquetas/tags
+  - name: Usuarios
+    description: Gestión de usuarios del sistema
+
+components:
+  schemas:
+    # =========================================================================
+    # PERSONAS
+    # =========================================================================
+    Persona:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID único de la persona
+          example: 1
+        nombre:
+          type: string
+          description: Nombre completo de la persona
+          example: "Juan García"
+        email:
+          type: string
+          format: email
+          description: Correo electrónico único
+          example: "juan.garcia@example.com"
+        tareas:
+          type: array
+          items:
+            $ref: '#/components/schemas/TareaSimple'
+          description: Lista de tareas asignadas
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-04-14T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-04-14T10:30:00Z"
+      required:
+        - nombre
+        - email
+
+    # =========================================================================
+    # TAREAS
+    # =========================================================================
+    Tarea:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        titulo:
+          type: string
+          description: Título de la tarea
+          example: "Implementar autenticación JWT"
+        descripcion:
+          type: string
+          description: Descripción detallada de la tarea
+          example: "Implementar sistema de autenticación con JWT"
+        estado:
+          type: string
+          enum: [pendiente, en_progreso, completada]
+          description: Estado actual de la tarea
+          example: "pendiente"
+        persona_id:
+          type: integer
+          description: ID de la persona asignada
+          example: 1
+        persona:
+          $ref: '#/components/schemas/PersonaSimple'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSimple'
+          description: Tags asociados a la tarea
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - titulo
+        - persona_id
+
+    TareaSimple:
+      type: object
+      properties:
+        id:
+          type: integer
+        titulo:
+          type: string
+        estado:
+          type: string
+
+    # =========================================================================
+    # TAGS
+    # =========================================================================
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nombre:
+          type: string
+          description: Nombre del tag
+          example: "urgente"
+        tareas:
+          type: array
+          items:
+            $ref: '#/components/schemas/TareaSimple'
+          description: Tareas asociadas a este tag
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - nombre
+
+    TagSimple:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+
+    # =========================================================================
+    # USUARIOS
+    # =========================================================================
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nombre:
+          type: string
+          example: "Admin User"
+        email:
+          type: string
+          format: email
+          example: "admin@example.com"
+        activo:
+          type: boolean
+          example: true
+        rol:
+          type: string
+          enum: [admin, usuario, visualizador]
+          example: "usuario"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - nombre
+        - email
+
+    # =========================================================================
+    # HELPERS
+    # =========================================================================
+    PersonaSimple:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        email:
+          type: string
+
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operación realizada exitosamente"
+        data:
+          type: object
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        error:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtenido en login
+
+  responses:
+    UnauthorizedError:
+      description: Token inválido o expirado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFoundError:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ConflictError:
+      description: "Conflicto (ej: email duplicado)"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+security:
+  - bearerAuth: []
+
+paths:
+  # =========================================================================
+  # AUTENTICACIÓN
+  # =========================================================================
+  /auth/login:
+    post:
+      summary: Iniciar sesión
+      tags:
+        - Autenticación
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+              required:
+                - email
+      responses:
+        '200':
+          description: Sesión iniciada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                    description: JWT token para autenticación
+                  data:
+                    $ref: '#/components/schemas/Usuario'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  # =========================================================================
+  # PERSONAS
+  # =========================================================================
+  /personas:
+    get:
+      summary: Obtener todas las personas
+      tags:
+        - Personas
+      responses:
+        '200':
+          description: Lista de personas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Persona'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+    post:
+      summary: Crear nueva persona
+      tags:
+        - Personas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                  example: "Carlos Rodríguez"
+                email:
+                  type: string
+                  format: email
+                  example: "carlos@example.com"
+              required:
+                - nombre
+                - email
+      responses:
+        '201':
+          description: Persona creada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Persona'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /personas/{id}:
+    get:
+      summary: Obtener persona por ID
+      tags:
+        - Personas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos de la persona
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Persona'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+    put:
+      summary: Actualizar persona
+      tags:
+        - Personas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                email:
+                  type: string
+                  format: email
+              required:
+                - nombre
+                - email
+      responses:
+        '200':
+          description: Persona actualizada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Persona'
+
+    delete:
+      summary: Eliminar persona
+      tags:
+        - Personas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Persona eliminada
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /personas/{id}/tareas:
+    get:
+      summary: Obtener tareas de una persona
+      tags:
+        - Personas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de tareas de la persona
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      persona:
+                        $ref: '#/components/schemas/PersonaSimple'
+                      tareas:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Tarea'
+
+  /personas/{id}/tags:
+    get:
+      summary: Obtener tags de una persona (relación indirecta)
+      tags:
+        - Personas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tags asociados a tareas de la persona
+
+  # =========================================================================
+  # TAREAS
+  # =========================================================================
+  /tareas:
+    get:
+      summary: Obtener todas las tareas
+      tags:
+        - Tareas
+      parameters:
+        - name: estado
+          in: query
+          schema:
+            type: string
+            enum: [pendiente, en_progreso, completada]
+          description: Filtrar por estado
+        - name: personaId
+          in: query
+          schema:
+            type: integer
+          description: Filtrar por persona asignada
+      responses:
+        '200':
+          description: Lista de tareas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tarea'
+
+    post:
+      summary: Crear nueva tarea
+      tags:
+        - Tareas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                titulo:
+                  type: string
+                  example: "Implementar login"
+                descripcion:
+                  type: string
+                  example: "Crear endpoint de login con JWT"
+                estado:
+                  type: string
+                  enum: [pendiente, en_progreso, completada]
+                  example: "pendiente"
+                persona_id:
+                  type: integer
+                  example: 1
+                tagIds:
+                  type: array
+                  items:
+                    type: integer
+                  example: [1, 2]
+              required:
+                - titulo
+                - persona_id
+      responses:
+        '201':
+          description: Tarea creada
+
+  /tareas/{id}:
+    get:
+      summary: Obtener tarea por ID
+      tags:
+        - Tareas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos de la tarea
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Tarea'
+
+    put:
+      summary: Actualizar tarea completamente
+      tags:
+        - Tareas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                titulo:
+                  type: string
+                descripcion:
+                  type: string
+                estado:
+                  type: string
+                persona_id:
+                  type: integer
+                tagIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Tarea actualizada
+
+    patch:
+      summary: Actualizar tarea parcialmente
+      tags:
+        - Tareas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                titulo:
+                  type: string
+                estado:
+                  type: string
+                tagIds:
+                  type: array
+                  items:
+                    type: integer
+      responses:
+        '200':
+          description: Tarea actualizada parcialmente
+
+    delete:
+      summary: Eliminar tarea
+      tags:
+        - Tareas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tarea eliminada
+
+  /tareas/{id}/tags:
+    get:
+      summary: Obtener tags de una tarea
+      tags:
+        - Tareas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tags de la tarea
+
+  /tareas/{id}/tags/{tagId}:
+    post:
+      summary: Asignar tag a tarea
+      tags:
+        - Tareas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: tagId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tag asignado exitosamente
+
+    delete:
+      summary: Desasignar tag de tarea
+      tags:
+        - Tareas
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: tagId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tag desasignado exitosamente
+
+  # =========================================================================
+  # TAGS
+  # =========================================================================
+  /tags:
+    get:
+      summary: Obtener todos los tags
+      tags:
+        - Tags
+      responses:
+        '200':
+          description: Lista de tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tag'
+
+    post:
+      summary: Crear nuevo tag
+      tags:
+        - Tags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                  example: "urgente"
+              required:
+                - nombre
+      responses:
+        '201':
+          description: Tag creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Tag'
+
+  /tags/{id}:
+    get:
+      summary: Obtener tag por ID
+      tags:
+        - Tags
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos del tag
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Tag'
+
+    put:
+      summary: Actualizar tag
+      tags:
+        - Tags
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+              required:
+                - nombre
+      responses:
+        '200':
+          description: Tag actualizado
+
+    delete:
+      summary: Eliminar tag
+      tags:
+        - Tags
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tag eliminado
+
+  /tags/{id}/tareas:
+    get:
+      summary: Obtener tareas con un tag específico
+      tags:
+        - Tags
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tareas con el tag
+
+  /tags/{id}/personas:
+    get:
+      summary: Obtener personas asociadas a un tag (relación indirecta)
+      tags:
+        - Tags
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Personas relacionadas con el tag
+
+  # =========================================================================
+  # USUARIOS
+  # =========================================================================
+  /usuarios/registro:
+    post:
+      summary: Registrar nuevo usuario
+      tags:
+        - Usuarios
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                passwordConfirm:
+                  type: string
+                  format: password
+              required:
+                - nombre
+                - email
+                - password
+                - passwordConfirm
+      responses:
+        '201':
+          description: Usuario registrado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Usuario'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+
+  /usuarios/login:
+    post:
+      summary: Iniciar sesión
+      tags:
+        - Usuarios
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Usuario'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /usuarios:
+    get:
+      summary: Obtener todos los usuarios
+      tags:
+        - Usuarios
+      responses:
+        '200':
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Usuario'
+
+  /usuarios/{id}:
+    get:
+      summary: Obtener usuario por ID
+      tags:
+        - Usuarios
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos del usuario
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Usuario'
+
+    put:
+      summary: Actualizar usuario
+      tags:
+        - Usuarios
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Usuario actualizado
+
+    delete:
+      summary: Eliminar usuario
+      tags:
+        - Usuarios
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Usuario eliminado
+
+  /usuarios/{id}/cambiar-contraseña:
+    patch:
+      summary: Cambiar contraseña de usuario
+      tags:
+        - Usuarios
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                passwordActual:
+                  type: string
+                  format: password
+                passwordNueva:
+                  type: string
+                  format: password
+                passwordConfirm:
+                  type: string
+                  format: password
+              required:
+                - passwordActual
+                - passwordNueva
+                - passwordConfirm
+      responses:
+        '200':
+          description: Contraseña actualizada exitosamente
+
+  /usuarios/{id}/activar:
+    patch:
+      summary: Activar usuario
+      tags:
+        - Usuarios
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Usuario activado exitosamente
+
+  /usuarios/{id}/desactivar:
+    patch:
+      summary: Desactivar usuario
+      tags:
+        - Usuarios
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Usuario desactivado exitosamente
