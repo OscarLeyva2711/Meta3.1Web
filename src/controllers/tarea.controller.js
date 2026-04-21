@@ -1,33 +1,95 @@
 /**
  * Controlador de Tareas
- * Maneja las peticiones HTTP y responde con JSON
+ * Maneja las operaciones CRUD de tareas y sus relaciones con Personas y Tags
  */
 
-const tareaModel = require('../models/tarea.model');
+const db = require('../models');
+const { Op } = require('sequelize');
 
+// ============================================================================
+// CRUD DE TAREAS
+// ============================================================================
 
-
-// GET /api/tareas/:id - Obtener una tarea por ID
-const obtenerPorId = (req, res) => {
+/**
+ * GET /api/tareas - Obtener todas las tareas
+ */
+const obtenerTodas = async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    
+    const { estado, personaId } = req.query;
+
+    const where = {};
+    if (estado) where.estado = estado;
+    if (personaId) where.persona_id = personaId;
+
+    const tareas = await db.Tarea.findAll({
+      where,
+      include: [
+        {
+          model: db.Persona,
+          as: 'persona',
+          attributes: ['id', 'nombre', 'email']
+        },
+        {
+          model: db.Tag,
+          as: 'tags',
+          attributes: ['id', 'nombre'],
+          through: { attributes: [] }
+        }
+      ],
+      attributes: ['id', 'titulo', 'descripcion', 'estado', 'createdAt', 'updatedAt']
+    });
+
+    res.json({
+      success: true,
+      data: tareas,
+      total: tareas.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener tareas',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * GET /api/tareas/:id - Obtener una tarea por ID
+ */
+const obtenerPorId = async (req, res) => {
+  try {
+    const { id } = req.params;
+
     if (isNaN(id)) {
       return res.status(400).json({
         success: false,
         message: 'ID inválido. Debe ser un número'
       });
     }
-    
-    const tarea = tareaModel.obtenerPorId(id);
-    
+
+    const tarea = await db.Tarea.findByPk(id, {
+      include: [
+        {
+          model: db.Persona,
+          as: 'persona',
+          attributes: ['id', 'nombre', 'email']
+        },
+        {
+          model: db.Tag,
+          as: 'tags',
+          attributes: ['id', 'nombre'],
+          through: { attributes: [] }
+        }
+      ]
+    });
+
     if (!tarea) {
       return res.status(404).json({
         success: false,
         message: `Tarea con ID ${id} no encontrada`
       });
     }
-    
+
     res.json({
       success: true,
       data: tarea
@@ -35,193 +97,307 @@ const obtenerPorId = (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error al obtener la tarea',
+      message: 'Error al obtener tarea',
       error: error.message
     });
   }
 };
 
-// POST /api/tareas - Crear una nueva tarea
-const crear = (req, res) => {
+/**
+ * POST /api/tareas - Crear una nueva tarea
+ */
+const crear = async (req, res) => {
   try {
-    const { titulo, completada } = req.body;
-    
-    // Validar datos requeridos
+    const { titulo, descripcion, estado, persona_id, tagIds } = req.body;
+
+    // Validaciones
     if (!titulo) {
       return res.status(400).json({
         success: false,
         message: 'El campo "titulo" es requerido'
       });
     }
-    
-    const nuevaTarea = tareaModel.crear({ titulo, completada });
-    
+
+    if (!persona_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'El campo "persona_id" es requerido'
+      });
+    }
+
+    // Verificar que la persona existe
+    const persona = await db.Persona.findByPk(persona_id);
+    if (!persona) {
+      return res.status(404).json({
+        success: false,
+        message: `Persona con ID ${persona_id} no encontrada`
+      });
+    }
+
+    const nuevaTarea = await db.Tarea.create({
+      titulo,
+      descripcion: descripcion || null,
+      estado: estado || 'pendiente',
+      persona_id
+    });
+
+    // Agregar tags si se proporcionan
+    if (tagIds && Array.isArray(tagIds) && tagIds.length > 0) {
+      await nuevaTarea.addTags(tagIds);
+    }
+
+    // Recargar con relaciones
+    const tareaCompleta = await db.Tarea.findByPk(nuevaTarea.id, {
+      include: [
+        { model: db.Persona, as: 'persona', attributes: ['id', 'nombre'] },
+        { model: db.Tag, as: 'tags', attributes: ['id', 'nombre'], through: { attributes: [] } }
+      ]
+    });
+
     res.status(201).json({
       success: true,
       message: 'Tarea creada exitosamente',
-      data: nuevaTarea
+      data: tareaCompleta
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error al crear la tarea',
+      message: 'Error al crear tarea',
       error: error.message
     });
   }
 };
 
-// PUT /api/tareas/:id - Actualizar tarea completamente
-const actualizarCompleta = (req, res) => {
+/**
+ * PUT /api/tareas/:id - Actualizar tarea completamente
+ */
+const actualizarCompleta = async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    const { titulo, completada } = req.body;
-    
+    const { id } = req.params;
+    const { titulo, descripcion, estado, persona_id, tagIds } = req.body;
+
     if (isNaN(id)) {
       return res.status(400).json({
         success: false,
         message: 'ID inválido. Debe ser un número'
       });
     }
-    
-    // Validar datos requeridos
-    if (!titulo) {
+
+    // Validaciones
+    if (!titulo || !persona_id) {
       return res.status(400).json({
         success: false,
-        message: 'El campo "titulo" es requerido'
+        message: 'Los campos "titulo" y "persona_id" son requeridos'
       });
     }
-    
-    const tareaActualizada = tareaModel.actualizarCompleta(id, { titulo, completada });
-    
-    if (!tareaActualizada) {
+
+    const tarea = await db.Tarea.findByPk(id);
+    if (!tarea) {
       return res.status(404).json({
         success: false,
         message: `Tarea con ID ${id} no encontrada`
       });
     }
-    
+
+    // Verificar que la persona existe
+    const persona = await db.Persona.findByPk(persona_id);
+    if (!persona) {
+      return res.status(404).json({
+        success: false,
+        message: `Persona con ID ${persona_id} no encontrada`
+      });
+    }
+
+    await tarea.update({
+      titulo,
+      descripcion: descripcion || null,
+      estado: estado || 'pendiente',
+      persona_id
+    });
+
+    // Actualizar tags si se proporcionan
+    if (Array.isArray(tagIds)) {
+      await tarea.setTags(tagIds);
+    }
+
+    // Recargar con relaciones
+    const tareaActualizada = await db.Tarea.findByPk(id, {
+      include: [
+        { model: db.Persona, as: 'persona', attributes: ['id', 'nombre'] },
+        { model: db.Tag, as: 'tags', attributes: ['id', 'nombre'], through: { attributes: [] } }
+      ]
+    });
+
     res.json({
       success: true,
-      message: 'Tarea actualizada completamente',
+      message: 'Tarea actualizada exitosamente',
       data: tareaActualizada
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error al actualizar la tarea',
+      message: 'Error al actualizar tarea',
       error: error.message
     });
   }
 };
 
-// PATCH /api/tareas/:id - Actualizar tarea parcialmente
-const actualizarParcial = (req, res) => {
+/**
+ * PATCH /api/tareas/:id - Actualizar tarea parcialmente
+ */
+const actualizarParcial = async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    const datosParciales = req.body;
-    
+    const { id } = req.params;
+    const actualizaciones = req.body;
+
     if (isNaN(id)) {
       return res.status(400).json({
         success: false,
         message: 'ID inválido. Debe ser un número'
       });
     }
-    
-    // Si no hay datos para actualizar
-    if (Object.keys(datosParciales).length === 0) {
+
+    if (Object.keys(actualizaciones).length === 0) {
       return res.status(400).json({
         success: false,
         message: 'Debe enviar al menos un campo para actualizar'
       });
     }
-    
-    const tareaActualizada = tareaModel.actualizarParcial(id, datosParciales);
-    
-    if (!tareaActualizada) {
+
+    const tarea = await db.Tarea.findByPk(id);
+    if (!tarea) {
       return res.status(404).json({
         success: false,
         message: `Tarea con ID ${id} no encontrada`
       });
     }
-    
+
+    // Campos permitidos para actualización parcial
+    const camposPermitidos = ['titulo', 'descripcion', 'estado', 'persona_id'];
+    const datosParciales = {};
+
+    camposPermitidos.forEach(campo => {
+      if (campo in actualizaciones) {
+        datosParciales[campo] = actualizaciones[campo];
+      }
+    });
+
+    // Si se cambio la persona, verificar que existe
+    if (datosParciales.persona_id) {
+      const persona = await db.Persona.findByPk(datosParciales.persona_id);
+      if (!persona) {
+        return res.status(404).json({
+          success: false,
+          message: `Persona con ID ${datosParciales.persona_id} no encontrada`
+        });
+      }
+    }
+
+    await tarea.update(datosParciales);
+
+    // Actualizar tags si se proporcionan
+    if (Array.isArray(actualizaciones.tagIds)) {
+      await tarea.setTags(actualizaciones.tagIds);
+    }
+
+    // Recargar con relaciones
+    const tareaActualizada = await db.Tarea.findByPk(id, {
+      include: [
+        { model: db.Persona, as: 'persona', attributes: ['id', 'nombre'] },
+        { model: db.Tag, as: 'tags', attributes: ['id', 'nombre'], through: { attributes: [] } }
+      ]
+    });
+
     res.json({
       success: true,
-      message: 'Tarea actualizada parcialmente',
+      message: 'Tarea actualizada exitosamente',
       data: tareaActualizada
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error al actualizar la tarea',
+      message: 'Error al actualizar tarea',
       error: error.message
     });
   }
 };
 
-// DELETE /api/tareas/:id - Eliminar una tarea
-const eliminar = (req, res) => {
+/**
+ * DELETE /api/tareas/:id - Eliminar una tarea
+ */
+const eliminar = async (req, res) => {
   try {
-    const id = parseInt(req.params.id);
-    
+    const { id } = req.params;
+
     if (isNaN(id)) {
       return res.status(400).json({
         success: false,
         message: 'ID inválido. Debe ser un número'
       });
     }
-    
-    const tareaEliminada = tareaModel.eliminar(id);
-    
-    if (!tareaEliminada) {
+
+    const tarea = await db.Tarea.findByPk(id);
+    if (!tarea) {
       return res.status(404).json({
         success: false,
         message: `Tarea con ID ${id} no encontrada`
       });
     }
-    
+
+    // Eliminar relaciones con tags
+    await tarea.setTags([]);
+
+    // Luego eliminar la tarea
+    await tarea.destroy();
+
     res.json({
       success: true,
-      message: 'Tarea eliminada exitosamente',
-      data: tareaEliminada
+      message: 'Tarea eliminada exitosamente'
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error al eliminar la tarea',
+      message: 'Error al eliminar tarea',
       error: error.message
     });
   }
 };
 
-// GET /api/tareas/buscar?q=... - Buscar por título
-const buscarPorTitulo = (req, res) => {
-  try {
-    const { q, formato } = req.query;
+// ============================================================================
+// BÚSQUEDAS Y FILTROS
+// ============================================================================
 
-    if (!q) {
+/**
+ * GET /api/tareas/buscar?titulo= - Buscar tareas por título o descripción
+ */
+const buscarPorTitulo = async (req, res) => {
+  try {
+    const { titulo, descripcion, estado } = req.query;
+
+    if (!titulo && !descripcion) {
       return res.status(400).json({
         success: false,
-        message: 'El parámetro "q" es requerido'
+        message: 'Proporciona al menos un parámetro de búsqueda: titulo o descripcion'
       });
     }
 
-    const resultados = tareaModel.buscarPorTitulo(q);
+    const where = {};
+    if (titulo) where.titulo = { [Op.like]: `%${titulo}%` };
+    if (descripcion) where.descripcion = { [Op.like]: `%${descripcion}%` };
+    if (estado) where.estado = estado;
 
-    // Actividad 4: soporte para formato=text
-    if (formato === 'text') {
-      const texto = resultados.map(t => 
-        `[${t.id}] ${t.titulo} - ${t.completada ? 'Completada' : 'Pendiente'}`
-      ).join('\n');
-
-      return res.type('text/plain').send(
-        resultados.length > 0 ? texto : 'No se encontraron tareas'
-      );
-    }
+    const tareas = await db.Tarea.findAll({
+      where,
+      include: [
+        { model: db.Persona, as: 'persona', attributes: ['id', 'nombre'] },
+        { model: db.Tag, as: 'tags', attributes: ['id', 'nombre'], through: { attributes: [] } }
+      ]
+    });
 
     res.json({
       success: true,
-      data: resultados,
-      count: resultados.length
+      data: tareas,
+      total: tareas.length
     });
   } catch (error) {
     res.status(500).json({
@@ -232,39 +408,158 @@ const buscarPorTitulo = (req, res) => {
   }
 };
 
-const obtenerTodas = (req, res) => {
-  try {
-    const tareas = tareaModel.obtenerTodas();
-    const { formato } = req.query;
+// ============================================================================
+// RELACIONES - TAREAS ↔ TAGS
+// ============================================================================
 
-    if (formato === 'text') {
-      const texto = tareas.map(t => 
-        `[${t.id}] ${t.titulo} - ${t.completada ? 'Completada' : 'Pendiente'}`
-      ).join('\n');
-      return res.type('text/plain').send(texto);
+/**
+ * GET /api/tareas/:id/tags - Obtener todos los tags de una tarea
+ */
+const obtenerTags = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID inválido. Debe ser un número'
+      });
     }
+
+    const tarea = await db.Tarea.findByPk(id);
+    if (!tarea) {
+      return res.status(404).json({
+        success: false,
+        message: `Tarea con ID ${id} no encontrada`
+      });
+    }
+
+    const tags = await tarea.getTags({
+      attributes: ['id', 'nombre']
+    });
 
     res.json({
       success: true,
-      data: tareas,
-      count: tareas.length
+      data: {
+        tarea: {
+          id: tarea.id,
+          titulo: tarea.titulo
+        },
+        tags,
+        total: tags.length
+      }
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error al obtener las tareas',
+      message: 'Error al obtener tags de tarea',
       error: error.message
     });
   }
 };
 
-// Exportar todos los métodos del controlador
+/**
+ * POST /api/tareas/:id/tags/:tagId - Asignar un tag a una tarea
+ */
+const asignarTag = async (req, res) => {
+  try {
+    const { id, tagId } = req.params;
+
+    if (isNaN(id) || isNaN(tagId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'IDs inválidos. Deben ser números'
+      });
+    }
+
+    const tarea = await db.Tarea.findByPk(id);
+    if (!tarea) {
+      return res.status(404).json({
+        success: false,
+        message: `Tarea con ID ${id} no encontrada`
+      });
+    }
+
+    const tag = await db.Tag.findByPk(tagId);
+    if (!tag) {
+      return res.status(404).json({
+        success: false,
+        message: `Tag con ID ${tagId} no encontrado`
+      });
+    }
+
+    await tarea.addTag(tag);
+
+    res.json({
+      success: true,
+      message: 'Tag asignado a tarea exitosamente'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al asignar tag a tarea',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * DELETE /api/tareas/:id/tags/:tagId - Desasignar un tag de una tarea
+ */
+const desasignarTag = async (req, res) => {
+  try {
+    const { id, tagId } = req.params;
+
+    if (isNaN(id) || isNaN(tagId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'IDs inválidos. Deben ser números'
+      });
+    }
+
+    const tarea = await db.Tarea.findByPk(id);
+    if (!tarea) {
+      return res.status(404).json({
+        success: false,
+        message: `Tarea con ID ${id} no encontrada`
+      });
+    }
+
+    const tag = await db.Tag.findByPk(tagId);
+    if (!tag) {
+      return res.status(404).json({
+        success: false,
+        message: `Tag con ID ${tagId} no encontrado`
+      });
+    }
+
+    await tarea.removeTag(tag);
+
+    res.json({
+      success: true,
+      message: 'Tag desasignado de tarea exitosamente'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error al desasignar tag de tarea',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
+  // CRUD
   obtenerTodas,
   obtenerPorId,
   crear,
   actualizarCompleta,
   actualizarParcial,
   eliminar,
-  buscarPorTitulo
+  // Búsquedas
+  buscarPorTitulo,
+  // Relaciones
+  obtenerTags,
+  asignarTag,
+  desasignarTag
 };

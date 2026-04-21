@@ -5,8 +5,16 @@
 
 const express = require('express');
 const tareaController = require('../controllers/tarea.controller');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Aplicar middleware de autenticación a todas las rutas de tareas
+router.use(authenticateToken);
+
+// ============================================================================
+// CRUD DE TAREAS
+// ============================================================================
 
 // GET /api/tareas - Obtener todas las tareas
 router.get('/', tareaController.obtenerTodas);
@@ -29,5 +37,17 @@ router.patch('/:id', tareaController.actualizarParcial);
 // DELETE /api/tareas/:id - Eliminar una tarea
 router.delete('/:id', tareaController.eliminar);
 
+// ============================================================================
+// RELACIONES - TAREAS ↔ TAGS
+// ============================================================================
+
+// GET /api/tareas/:id/tags - Obtener todos los tags de una tarea
+router.get('/:id/tags', tareaController.obtenerTags);
+
+// POST /api/tareas/:id/tags/:tagId - Asignar un tag a una tarea
+router.post('/:id/tags/:tagId', tareaController.asignarTag);
+
+// DELETE /api/tareas/:id/tags/:tagId - Desasignar un tag de una tarea
+router.delete('/:id/tags/:tagId', tareaController.desasignarTag);
 
 module.exports = router;
