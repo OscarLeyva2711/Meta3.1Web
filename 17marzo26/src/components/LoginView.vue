@@ -15,9 +15,22 @@
                 prepend-icon="mdi-email"
                 type="email"
                 :rules="emailRules"
-                :error-messages="error"
+                :error-messages="emailErrors"
                 required
                 :disabled="loading"
+              ></v-text-field>
+
+              <v-text-field
+                v-model="password"
+                label="Contraseña"
+                name="password"
+                prepend-icon="mdi-lock"
+                type="password"
+                :rules="passwordRules"
+                :error-messages="passwordErrors"
+                required
+                :disabled="loading"
+                class="mt-4"
               ></v-text-field>
             </v-form>
           </v-card-text>
@@ -27,7 +40,7 @@
               color="primary" 
               @click="handleLogin"
               :loading="loading"
-              :disabled="!email || loading"
+              :disabled="!email || !password || loading"
             >
               Iniciar Sesión
             </v-btn>
@@ -57,14 +70,22 @@ const router = useRouter()
 
 // Estado del componente
 const email = ref('')
+const password = ref('')
 const loading = ref(false)
 const error = ref('')
+const emailErrors = ref([])
+const passwordErrors = ref([])
 const form = ref(null)
 
 // Configuración de validación
 const emailRules = [
   v => !!v || 'El email es requerido',
   v => /.+@.+\..+/.test(v) || 'El email debe ser válido'
+]
+
+const passwordRules = [
+  v => !!v || 'La contraseña es requerida',
+  v => (v && v.length >= 6) || 'La contraseña debe tener al menos 6 caracteres'
 ]
 
 // Estado del snackbar
@@ -90,25 +111,39 @@ const handleLogin = async () => {
   if (!valid) return
 
   loading.value = true
-  error.value = ''
+  emailErrors.value = []
+  passwordErrors.value = []
 
   try {
-    const response = await authService.login(email.value)
+    const response = await authService.login(email.value, password.value)
     
     if (response.success) {
       showNotification('¡Inicio de sesión exitoso!', 'success')
+      
+      // Guardar token en localStorage
+      if (response.token) {
+        localStorage.setItem('authToken', response.token)
+      }
       
       // Redirigir a la página principal después de un breve delay
       setTimeout(() => {
         router.push('/')
       }, 1000)
     } else {
-      error.value = response.message || 'Error al iniciar sesión'
-      showNotification(error.value, 'error')
+      const message = response.message || 'Error al iniciar sesión'
+      showNotification(message, 'error')
     }
   } catch (err) {
-    error.value = err.message || 'Error de conexión'
-    showNotification(error.value, 'error')
+    const errorMessage = err.message || 'Error de conexión'
+    
+    // Mostrar errores específicos
+    if (errorMessage.includes('Email')) {
+      emailErrors.value = [errorMessage]
+    } else if (errorMessage.includes('contraseña')) {
+      passwordErrors.value = [errorMessage]
+    } else {
+      showNotification(errorMessage, 'error')
+    }
   } finally {
     loading.value = false
   }

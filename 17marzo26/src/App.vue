@@ -139,7 +139,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { tareaService } from '@/services/tareaService'
 import { authService } from '@/services/authService'
@@ -287,5 +287,30 @@ const checkAuthStatus = async () => {
   }
 }
 
-onMounted(checkAuthStatus)
+// Escuchar eventos de autenticación
+const setupAuthListeners = () => {
+  const handleLoginSuccess = () => {
+    isAuthenticated.value = true
+    cargarTareas()
+  }
+
+  const handleLogout = () => {
+    isAuthenticated.value = false
+  }
+
+  // Suscribirse a eventos
+  authService.onAuthEvent('login-success', handleLoginSuccess)
+  authService.onAuthEvent('logout', handleLogout)
+
+  // Limpiar suscripciones cuando el componente se destruye
+  onUnmounted(() => {
+    authService.offAuthEvent('login-success', handleLoginSuccess)
+    authService.offAuthEvent('logout', handleLogout)
+  })
+}
+
+onMounted(() => {
+  checkAuthStatus()
+  setupAuthListeners()
+})
 </script>

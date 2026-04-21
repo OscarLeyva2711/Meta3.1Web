@@ -1,13 +1,131 @@
-# API REST de Tareas — MVC con Express
+# 🚀 Meta3.1 Web - API REST de Tareas
 
-API REST para gestionar tareas, construida con Node.js y Express siguiendo el patrón MVC.
+**Aplicación completa con Frontend Vue.js + Backend Express + Base de Datos PostgreSQL**
 
 ---
 
-## Descripción
+## 📦 Estructura del Proyecto
+
+```
+Meta3.1/
+├── 17marzo26/                 # Frontend Vue.js
+│   ├── src/
+│   │   ├── components/
+│   │   ├── views/
+│   │   ├── services/
+│   │   └── App.vue
+│   └── package.json
+│
+└── api-tareas-mvc/            # Backend Express + Sequelize
+    ├── config/                # Configuración de BD
+    ├── migrations/            # Migrations de Sequelize
+    ├── seeders/               # Datos de prueba
+    ├── src/
+    │   ├── models/            # Modelos Sequelize
+    │   ├── controllers/
+    │   ├── routes/
+    │   └── middleware/
+    ├── 00-INICIO-AQUI.md      # ⭐ EMPIEZA AQUÍ
+    ├── SEQUELIZE-SETUP.md
+    ├── QUICK-REFERENCE.md
+    └── package.json
+```
+
+---
+
+## 🎯 Guía Rápida
+
+### Backend (api-tareas-mvc)
+
+**1. Instalar dependencias**
+```bash
+cd api-tareas-mvc
+npm install sequelize sequelize-cli pg pg-hstore
+```
+
+**2. Configurar Base de Datos**
+```bash
+# Editar config/config.json con tus credenciales
+# Crear BD: createdb tareas_db
+```
+
+**3. Ejecutar Migrations y Seeders**
+```bash
+npm run db:migrate
+npm run db:seed:all
+```
+
+**4. Iniciar servidor**
+```bash
+npm run dev
+```
+
+📍 **Documentación completa:** `api-tareas-mvc/00-INICIO-AQUI.md`
+
+### Frontend (17marzo26)
+
+```bash
+cd 17marzo26
+npm install
+npm run dev
+```
+
+---
+
+## 📚 Documentación Backend
+
+| Archivo | Descripción |
+|---------|------------|
+| **00-INICIO-AQUI.md** | ⭐ Comienza aquí - Resumen visual |
+| **SEQUELIZE-SETUP.md** | Instalación y configuración detallada |
+| **QUICK-REFERENCE.md** | Guía rápida de operaciones CRUD |
+| **IMPLEMENTATION-SUMMARY.md** | Resumen técnico |
+| **CHECKLIST.md** | Lista de verificación |
+| **RESUMEN-FINAL.txt** | ASCII art con estadísticas |
+
+---
+
+## ✨ Lo Que Se Ha Implementado
+
+### Backend
+✅ ORM Sequelize completamente configurado  
+✅ 3 Modelos: Persona, Tarea, Tag  
+✅ Relaciones 1:N y N:M  
+✅ 4 Migrations automáticas  
+✅ 4 Seeders con datos de prueba  
+✅ 30+ ejemplos de queries  
+✅ Documentación completa  
+
+### Frontend
+✅ Vue.js + Vite  
+✅ Componentes reutilizables  
+✅ Formularios reactivos  
+✅ Autenticación JWT  
+✅ Comunicación con API  
+
+### Base de Datos
+✅ PostgreSQL  
+✅ Tabla: personas (4 registros)  
+✅ Tabla: tags (6 registros)  
+✅ Tabla: tareas (8 registros)  
+✅ Tabla: tarea_tags (relaciones N:M)  
+
+---
+
+## 🗄️ Diagrama de Relaciones
+
+```
+Persona (1) ──────── (N) Tarea
+                      │
+                      └──── (N:M) Tags
+```
+
+---
+
+## 📝 Descripción Original
 
 Esta API permite crear, leer, actualizar y eliminar tareas (CRUD completo).  
-La persistencia se maneja en memoria mediante un arreglo en JavaScript.  
+La persistencia se maneja con PostgreSQL y Sequelize ORM.  
 La arquitectura sigue el patrón MVC separando modelos, controladores y rutas.
 
 ---
