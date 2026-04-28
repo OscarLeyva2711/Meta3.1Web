@@ -287,30 +287,27 @@ const checkAuthStatus = async () => {
   }
 }
 
-// Escuchar eventos de autenticación
-const setupAuthListeners = () => {
-  const handleLoginSuccess = () => {
-    isAuthenticated.value = true
-    cargarTareas()
-  }
+// Escuchar cambios en las cookies para actualizar el estado de autenticación
+const watchAuthChanges = () => {
+  // Crear un intervalo para verificar cambios en las cookies
+  const checkInterval = setInterval(() => {
+    const currentlyAuth = authService.isAuthenticated()
+    if (currentlyAuth !== isAuthenticated.value) {
+      isAuthenticated.value = currentlyAuth
+      if (currentlyAuth) {
+        cargarTareas()
+      }
+    }
+  }, 1000) // Verificar cada segundo
 
-  const handleLogout = () => {
-    isAuthenticated.value = false
-  }
-
-  // Suscribirse a eventos
-  authService.onAuthEvent('login-success', handleLoginSuccess)
-  authService.onAuthEvent('logout', handleLogout)
-
-  // Limpiar suscripciones cuando el componente se destruye
+  // Limpiar intervalo cuando el componente se destruye
   onUnmounted(() => {
-    authService.offAuthEvent('login-success', handleLoginSuccess)
-    authService.offAuthEvent('logout', handleLogout)
+    clearInterval(checkInterval)
   })
 }
 
 onMounted(() => {
   checkAuthStatus()
-  setupAuthListeners()
+  watchAuthChanges()
 })
 </script>

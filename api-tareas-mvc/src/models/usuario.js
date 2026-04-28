@@ -19,10 +19,19 @@ module.exports = (sequelize, DataTypes) => {
     },
     password: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true, // Nullable para usuarios OAuth
       validate: {
-        len: [6, 255]
+        len: [0, 255]
       }
+    },
+    googleId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true
+    },
+    foto: {
+      type: DataTypes.STRING,
+      allowNull: true
     },
     activo: {
       type: DataTypes.BOOLEAN,

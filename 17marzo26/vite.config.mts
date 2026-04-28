@@ -3,6 +3,12 @@ import Vue from '@vitejs/plugin-vue'
 import Fonts from 'unplugin-fonts/vite'
 import { defineConfig } from 'vite'
 import Vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
+import fs from 'fs'
+import path from 'path'
+
+// Leer certificados autofirmados
+const cert = fs.readFileSync(path.resolve(__dirname, '../certs/cert.pem'), 'utf-8')
+const key = fs.readFileSync(path.resolve(__dirname, '../certs/key.pem'), 'utf-8')
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -45,8 +51,18 @@ export default defineConfig({
     ],
   },
   server: {
+    https: {
+      cert,
+      key
+    },
     proxy: {
-      '/api': 'http://localhost:3000'
-    }
+      '/api': {
+        target: 'https://localhost:3000',
+        changeOrigin: true,
+        secure: false, // Aceptar certificados autofirmados
+        rewrite: (path) => path.replace(/^\/api/, '/api')
+      }
+    },
+    port: 5173
   },
 })

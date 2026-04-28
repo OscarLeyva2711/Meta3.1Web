@@ -29,6 +29,22 @@ const login = (req, res) => {
       });
     }
 
+    // Validar que se proporcionó una contraseña
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'La contraseña es requerida.'
+      });
+    }
+
+    // Validar que la contraseña no esté vacía
+    if (password.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'La contraseña no puede estar vacía.'
+      });
+    }
+
     // Generar token CSRF único
     const csrfToken = crypto.randomBytes(32).toString('hex');
 
@@ -63,6 +79,7 @@ const login = (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Autenticación exitosa.',
+      token: token, // Incluir el token en la respuesta para el frontend
       data: {
         user: {
           email: email
@@ -109,15 +126,41 @@ const logout = (req, res) => {
  */
 const verify = (req, res) => {
   try {
-    // El middleware authenticateToken ya verificó el token
-    // Si llegamos aquí, el usuario está autenticado
-    
-    res.status(200).json({
-      success: true,
-      message: 'Usuario autenticado correctamente.',
-      data: {
-        user: req.user
+    // Verificar si hay usuario autenticado por Passport (Google OAuth)
+    if (req.user && req.user.id) {
+      return res.status(200).json({
+        success: true,
+        message: 'Usuario autenticado correctamente (Google OAuth).',
+        data: {
+          user: req.user
+        }
+      });
+    }
+
+    // Verificar si hay token JWT (autenticación tradicional)
+    const token = req.cookies?.jwt_token;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        return res.status(200).json({
+          success: true,
+          message: 'Usuario autenticado correctamente (JWT).',
+          data: {
+            user: {
+              email: decoded.email
+            }
+          }
+        });
+      } catch (jwtError) {
+        // Token inválido o expirado
+        console.warn('Token JWT inválido:', jwtError.message);
       }
+    }
+
+    // No hay autenticación válida
+    return res.status(401).json({
+      success: false,
+      message: 'Usuario no autenticado.'
     });
 
   } catch (error) {

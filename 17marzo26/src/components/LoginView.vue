@@ -7,17 +7,18 @@
             <v-toolbar-title>Iniciar Sesión</v-toolbar-title>
           </v-toolbar>
           <v-card-text>
+            <!-- Formulario tradicional -->
             <v-form @submit.prevent="handleLogin" ref="form">
               <v-text-field
                 v-model="email"
                 label="Email"
-                name="email"
                 prepend-icon="mdi-email"
                 type="email"
                 :rules="emailRules"
                 :error-messages="emailErrors"
                 required
                 :disabled="loading"
+                autocomplete="email"
               ></v-text-field>
 
               <v-text-field
@@ -31,8 +32,28 @@
                 required
                 :disabled="loading"
                 class="mt-4"
+                autocomplete="current-password"
               ></v-text-field>
             </v-form>
+
+            <!-- Divisor -->
+            <div class="d-flex align-center my-4">
+              <v-divider></v-divider>
+              <span class="mx-3 text-grey">O</span>
+              <v-divider></v-divider>
+            </div>
+
+            <!-- Botón de Google OAuth -->
+            <v-btn
+              block
+              color="red"
+              @click="handleGoogleOAuthLogin"
+              prepend-icon="mdi-google"
+              :loading="googleLoading"
+              class="mb-4"
+            >
+              Iniciar con Google
+            </v-btn>
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
@@ -45,6 +66,8 @@
               Iniciar Sesión
             </v-btn>
           </v-card-actions>
+
+      
         </v-card>
       </v-col>
     </v-row>
@@ -63,16 +86,17 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { authService } from '@/services/authService'
 
 const router = useRouter()
+const route = useRoute()
 
 // Estado del componente
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
-const error = ref('')
+const googleLoading = ref(false)
 const emailErrors = ref([])
 const passwordErrors = ref([])
 const form = ref(null)
@@ -87,6 +111,13 @@ const passwordRules = [
   v => !!v || 'La contraseña es requerida',
   v => (v && v.length >= 6) || 'La contraseña debe tener al menos 6 caracteres'
 ]
+
+// Manejar login con Google OAuth
+const handleGoogleOAuthLogin = () => {
+  console.log(' INICIANDO GOOGLE OAUTH - Si ves esto, el login funciona')
+  alert(' Google OAuth iniciado - Si ves esto, el login funciona')
+  window.location.href = 'https://localhost:3000/api/auth/google/login'
+}
 
 // Estado del snackbar
 const snackbar = ref({
@@ -104,7 +135,7 @@ const showNotification = (message, color = 'success') => {
   }
 }
 
-// Manejar login
+// Manejar login tradicional
 const handleLogin = async () => {
   // Validar formulario
   const { valid } = await form.value.validate()
@@ -125,10 +156,12 @@ const handleLogin = async () => {
         localStorage.setItem('authToken', response.token)
       }
       
-      // Redirigir a la página principal después de un breve delay
-      setTimeout(() => {
-        router.push('/')
-      }, 1000)
+      console.log('Login exitoso, redirigiendo al dashboard...')
+      console.log('Token guardado:', response.token ? 'Sí' : 'No')
+      console.log('AuthService.isAuthenticated():', authService.isAuthenticated())
+      
+      // Redirigir inmediatamente a la página principal
+      router.push('/')
     } else {
       const message = response.message || 'Error al iniciar sesión'
       showNotification(message, 'error')
@@ -148,6 +181,7 @@ const handleLogin = async () => {
     loading.value = false
   }
 }
+
 
 // Verificar si ya está autenticado al cargar el componente
 onMounted(async () => {

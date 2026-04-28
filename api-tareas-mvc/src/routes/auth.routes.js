@@ -21,8 +21,8 @@ router.post('/logout', authenticateToken, authController.logout);
 
 /**
  * GET /api/auth/verify
- * Verificar estado de autenticación - requiere autenticación JWT
+ * Verificar estado de autenticación - soporta JWT y sesión
  */
-router.get('/verify', authenticateToken, authController.verify);
+router.get('/verify', authController.verify);
 
 module.exports = router;

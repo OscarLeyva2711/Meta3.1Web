@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'https://localhost:3000/api';
 const API_KEY = 'mi_api_key_secreta_12345';
 
 // Event emitter para cambios de autenticación
@@ -15,9 +15,16 @@ const apiClient = axios.create({
   }
 });
 
-// Interceptor para añadir token CSRF a las solicitudes
+// Interceptor para añadir JWT token y token CSRF a las solicitudes
 apiClient.interceptors.request.use((config) => {
-  // Obtener token CSRF de las cookies
+  // 1. Agregar JWT token desde localStorage al Authorization header
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+    console.log('JWT Token añadido al Authorization header');
+  }
+  
+  // 2. Obtener token CSRF de las cookies
   const csrfToken = getCsrfTokenFromCookie();
   console.log('CSRF Token encontrado:', csrfToken);
   console.log('Cookies disponibles:', document.cookie);
@@ -147,17 +154,8 @@ export const authService = {
    */
   async verify() {
     try {
-      // Obtener token del localStorage
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        throw new Error('No hay token disponible');
-      }
-      
-      const response = await apiClient.get('/auth/verify', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      // Para Google OAuth, verificar usando cookies (sin token en localStorage)
+      const response = await apiClient.get('/auth/verify');
       return response.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Error al verificar autenticación');
@@ -169,8 +167,14 @@ export const authService = {
    * @returns {boolean} True si está autenticado
    */
   isAuthenticated() {
+    // Verificar si hay token JWT en localStorage
     const token = localStorage.getItem('authToken');
-    return token !== null && token !== '';
+    if (token) {
+      return true;
+    }
+    
+    // Para Google OAuth, verificar si hay cookies de sesión
+    return document.cookie.includes('connect.sid') || document.cookie.includes('jwt_token');
   },
 
   /**
