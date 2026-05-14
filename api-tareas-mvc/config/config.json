@@ -1,0 +1,26 @@
+{
+  "development": {
+    "username": "tareas_user",
+    "password": "Tareas@2026#Segura",
+    "database": "tareas_db",
+    "host": "localhost",
+    "dialect": "mysql",
+    "port": 3306
+  },
+  "test": {
+    "username": "tareas_user",
+    "password": "Tareas@2026#Segura",
+    "database": "tareas_test",
+    "host": "localhost",
+    "dialect": "mysql",
+    "port": 3306
+  },
+  "production": {
+    "username": "tareas_user",
+    "password": "Tareas@2026#Segura",
+    "database": "tareas_prod",
+    "host": "localhost",
+    "dialect": "mysql",
+    "port": 3306
+  }
+}
