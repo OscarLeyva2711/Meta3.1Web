@@ -3,9 +3,9 @@
  * Define los endpoints para gestionar tags y sus relaciones
  */
 
-const express = require('express');
-const tagController = require('../controllers/tag.controller');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+import express from 'express';
+import tagController from '../controllers/tag.controller.js';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -44,4 +44,4 @@ router.get('/:id/tareas', tagController.obtenerTareas);
 // GET /api/tags/:id/personas - Obtener todas las personas asociadas a un tag (indirecto)
 router.get('/:id/personas', tagController.obtenerPersonas);
 
-module.exports = router;
+export default router;

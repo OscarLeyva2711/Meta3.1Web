@@ -2,10 +2,10 @@
  * Rutas de autenticación
  */
 
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const authController = require('../controllers/auth.controller');
-const { verifyApiKey, authenticateToken } = require('../middleware/auth');
+import authController from '../controllers/auth.controller.js';
+import { verifyApiKey, authenticateToken } from '../middleware/auth.js';
 
 /**
  * POST /api/auth/register
@@ -31,4 +31,4 @@ router.post('/logout', authenticateToken, authController.logout);
  */
 router.get('/verify', authController.verify);
 
-module.exports = router;
+export default router;

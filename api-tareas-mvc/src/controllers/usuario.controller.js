@@ -3,10 +3,10 @@
  * Maneja la autenticación, registro y gestión de usuarios
  */
 
-const db = require('../models');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { Op } = require('sequelize');
+import db from '../models/index.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { Op } from 'sequelize';
 
 function parseIds(value) {
   if (!value) return [];
@@ -625,20 +625,16 @@ const buscar = async (req, res) => {
   }
 };
 
-module.exports = {
-  // Autenticación
+export default {
   registro,
   login,
-  // CRUD
   obtenerTodos,
   crearDesdeAdmin,
   obtenerPorId,
   actualizar,
   cambiarPassword,
   eliminar,
-  // Activación
   activar,
   desactivar,
-  // Búsquedas
   buscar
 };

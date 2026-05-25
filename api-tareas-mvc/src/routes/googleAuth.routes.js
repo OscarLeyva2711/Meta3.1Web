@@ -2,10 +2,10 @@
  * Rutas de autenticación con Google OAuth
  */
 
-const express = require('express');
-const passport = require('passport');
+import express from 'express';
+import passport from 'passport';
 const router = express.Router();
-const { googleLogin, googleCallback } = require('../controllers/googleAuth.controller');
+import { googleLogin, googleCallback } from '../controllers/googleAuth.controller.js';
 
 /**
  * GET /api/auth/google/login
@@ -19,4 +19,4 @@ router.get('/login', googleLogin);
  */
 router.get('/callback', googleCallback);
 
-module.exports = router;
+export default router;

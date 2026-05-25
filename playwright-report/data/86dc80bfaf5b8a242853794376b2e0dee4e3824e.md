@@ -49,6 +49,12 @@ Call log:
   - text: Lista de usuarios
   - list:
     - listitem:
+      - text: Usuario Nuevo - nuevo-1779378254174@test.local usuario · activo
+      - button "Desactivar"
+    - listitem:
+      - text: Prueba - PruebaVisual@prueba.local visualizador · activo
+      - button "Desactivar"
+    - listitem:
       - text: Usuario Nuevo - nuevo-1778735224624@test.local usuario · activo
       - button "Desactivar"
     - listitem:

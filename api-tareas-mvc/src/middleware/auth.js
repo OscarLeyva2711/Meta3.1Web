@@ -9,7 +9,7 @@
  *   automático del navegador.
  */
 
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
 function extractToken(req) {
   if (req.cookies?.jwt_token) {
@@ -98,7 +98,7 @@ const requireRole = (...roles) => (req, res, next) => {
 
 const requireAdmin = requireRole('admin');
 
-module.exports = {
+export {
   authenticateToken,
   verifyApiKey,
   requireRole,

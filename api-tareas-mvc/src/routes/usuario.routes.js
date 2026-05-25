@@ -3,9 +3,9 @@
  * Define los endpoints para autenticación y gestión de usuarios
  */
 
-const express = require('express');
-const usuarioController = require('../controllers/usuario.controller');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+import express from 'express';
+import usuarioController from '../controllers/usuario.controller.js';
+import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -58,4 +58,4 @@ router.patch('/:id/activar', usuarioController.activar);
 // PATCH /api/usuarios/:id/desactivar - Desactivar usuario
 router.patch('/:id/desactivar', usuarioController.desactivar);
 
-module.exports = router;
+export default router;

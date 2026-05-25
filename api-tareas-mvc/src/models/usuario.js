@@ -1,4 +1,6 @@
-module.exports = (sequelize, DataTypes) => {
+import bcrypt from 'bcryptjs';
+
+export default (sequelize, DataTypes) => {
   const Usuario = sequelize.define('Usuario', {
     id: {
       type: DataTypes.INTEGER,
@@ -49,7 +51,6 @@ module.exports = (sequelize, DataTypes) => {
       // Hook para hashear la contraseña antes de crear
       beforeCreate: async (usuario) => {
         if (usuario.password) {
-          const bcrypt = require('bcryptjs');
           const salt = await bcrypt.genSalt(10);
           usuario.password = await bcrypt.hash(usuario.password, salt);
         }
@@ -57,7 +58,6 @@ module.exports = (sequelize, DataTypes) => {
       // Hook para hashear la contraseña antes de actualizar (si cambia)
       beforeUpdate: async (usuario) => {
         if (usuario.changed('password')) {
-          const bcrypt = require('bcryptjs');
           const salt = await bcrypt.genSalt(10);
           usuario.password = await bcrypt.hash(usuario.password, salt);
         }
@@ -67,7 +67,6 @@ module.exports = (sequelize, DataTypes) => {
 
   // Métodos de instancia
   Usuario.prototype.verificarPassword = async function(passwordIngresada) {
-    const bcrypt = require('bcryptjs');
     return await bcrypt.compare(passwordIngresada, this.password);
   };
 

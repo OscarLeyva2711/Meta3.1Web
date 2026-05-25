@@ -3,8 +3,8 @@
  * Maneja las operaciones CRUD de personas y sus relaciones
  */
 
-const db = require('../models');
-const { Op } = require('sequelize');
+import db from '../models/index.js';
+import { Op } from 'sequelize';
 
 // ============================================================================
 // CRUD DE PERSONAS
@@ -440,16 +440,13 @@ const obtenerTags = async (req, res) => {
   }
 };
 
-module.exports = {
-  // CRUD
+export default {
   obtenerTodas,
   obtenerPorId,
   crear,
   actualizar,
   eliminar,
-  // Búsquedas
   buscar,
-  // Relaciones
   obtenerTareas,
   obtenerTags
 };

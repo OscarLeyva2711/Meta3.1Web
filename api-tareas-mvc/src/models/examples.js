@@ -1,6 +1,6 @@
 // Ejemplo de cómo usar los modelos en Express
 
-const db = require('./index');
+import db from './index.js';
 
 // Sincronizar modelos con la base de datos (alternativa a migrations)
 // Ejecutar al iniciar el servidor
@@ -158,7 +158,7 @@ async function deleteTarea(tareaId) {
   }
 }
 
-module.exports = {
+export {
   initializeDatabase,
   getAllPersonasWithTareas,
   getTareaWithDetails,

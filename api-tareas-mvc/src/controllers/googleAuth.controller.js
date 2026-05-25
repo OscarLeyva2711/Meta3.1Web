@@ -5,8 +5,8 @@
  * envían como Authorization Bearer (no aplica CSRF en este flujo).
  */
 
-const passport = require('passport');
-const jwt = require('jsonwebtoken');
+import passport from 'passport';
+import jwt from 'jsonwebtoken';
 
 const googleLogin = (req, res, next) => {
   passport.authenticate('google', {
@@ -60,7 +60,7 @@ const googleCallback = (req, res, next) => {
   })(req, res, next);
 };
 
-module.exports = {
+export {
   googleLogin,
   googleCallback
 };

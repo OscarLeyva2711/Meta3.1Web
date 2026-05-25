@@ -3,9 +3,9 @@
  * Soporta login tradicional con JWT (cookie + CSRF) y verify multimodal (cookie o Bearer).
  */
 
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const db = require('../models');
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import db from '../models/index.js';
 
 /**
  * Extrae el JWT desde la cookie httpOnly o desde el header Authorization Bearer.
@@ -256,7 +256,7 @@ const verify = async (req, res) => {
   }
 };
 
-module.exports = {
+export default {
   register,
   login,
   logout,

@@ -2,7 +2,8 @@
 // REFERENCIA RÁPIDA: Operaciones CRUD con Sequelize
 // ============================================================================
 
-const db = require('./index');
+import db from './index.js';
+import Sequelize from 'sequelize';
 
 // ============================================================================
 // PERSONAS
@@ -248,7 +249,6 @@ async function getPersonaTareasComplete(personaId) {
 
 // Obtener estadísticas de tareas por estado
 async function getTareasEstadistics() {
-  const Sequelize = require('sequelize');
   return await db.Tarea.findAll({
     attributes: [
       'estado',
@@ -260,7 +260,6 @@ async function getTareasEstadistics() {
 
 // Obtener personas con cantidad de tareas
 async function getPersonasWithTareaCount() {
-  const Sequelize = require('sequelize');
   return await db.Persona.findAll({
     attributes: {
       include: [
@@ -278,7 +277,6 @@ async function getPersonasWithTareaCount() {
 
 // Obtener tags más usados
 async function getMostUsedTags() {
-  const Sequelize = require('sequelize');
   return await db.Tag.findAll({
     attributes: {
       include: [
@@ -364,7 +362,7 @@ async function getTareasFiltered(filters) {
 // EXPORTAR TODAS LAS FUNCIONES
 // ============================================================================
 
-module.exports = {
+export {
   // Personas
   getAllPersonas,
   getPersonaById,

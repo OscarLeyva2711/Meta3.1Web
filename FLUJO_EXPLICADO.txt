@@ -1,0 +1,361 @@
+═══════════════════════════════════════════════════════════════════════════════
+    FLUJO DEL PROGRAMA: SISTEMA DE GESTIÓN DE TAREAS Meta3.1
+═══════════════════════════════════════════════════════════════════════════════
+
+DOCUMENTOS CREADOS:
+───────────────────────────────────────────────────────────────────────────────
+
+1. ARQUITECTURA_Y_FLUJO.md
+   └─ Explicación detallada de toda la arquitectura
+   └─ Ciclo de vida de acciones
+   └─ Todas las capas (Frontend → Backend → BD)
+   └─ 14 secciones completas
+
+2. SERVICIOS_BACKEND.md
+   └─ Qué servicios ofrece el Backend al Frontend
+   └─ Todos los endpoints documentados
+   └─ Tablas de referencia rápida
+   └─ Transformación de datos
+
+3. DIAGRAMAS_FLUJO.md
+   └─ Diagramas ASCII de cada flujo principal
+   └─ Login (Email)
+   └─ Login (Google OAuth)
+   └─ GET Tareas, POST Tareas, DELETE Tareas
+   └─ Logout, manejo de errores 401
+
+4. REFERENCIA_RAPIDA_FLUJO.md
+   └─ Versión condensada para referencia rápida
+   └─ Checklists de cada proceso
+   └─ Soluciones a errores comunes
+   └─ Resumen en una página
+
+═══════════════════════════════════════════════════════════════════════════════
+EL FLUJO EXPLICADO EN 10 PUNTOS
+═══════════════════════════════════════════════════════════════════════════════
+
+PUNTO 1: INICIACIÓN
+───────────────────────────────────────────────────────────────────────────────
+Usuario abre navegador → https://localhost:5173/
+Vue app carga (main.ts)
+Router verifica: ¿Tiene token en localStorage?
+  SI  → Muestra home (TareasView)
+  NO  → Muestra login (LoginView)
+
+PUNTO 2: AUTENTICACIÓN (EMAIL + PASSWORD)
+───────────────────────────────────────────────────────────────────────────────
+Usuario ingresa: email + password
+Frontend: authService.login(email, password)
+Axios: POST /api/auth/login
+
+Backend recibe:
+  1. Busca usuario por email en BD
+  2. Compara password con bcryptjs
+  3. Si es válido: genera JWT (contiene id, email, rol, exp)
+  4. Devuelve: { token, user }
+
+Frontend guarda:
+  1. Token en localStorage
+  2. Configura Authorization header: "Bearer <token>"
+  3. Redirige a home
+
+PUNTO 3: AUTENTICACIÓN (GOOGLE OAUTH)
+───────────────────────────────────────────────────────────────────────────────
+Usuario: click "Inicia sesión con Google"
+Frontend abre popup de Google
+Usuario autoriza acceso
+Google devuelve code (token temporal)
+Backend intercambia code por access_token
+Backend obtiene datos del usuario de Google
+Backend busca o crea usuario en BD
+Backend genera JWT propio
+Frontend recibe token y lo guarda
+
+PUNTO 4: CADA REQUEST POSTERIOR
+───────────────────────────────────────────────────────────────────────────────
+Componente solicita datos:
+  await tareaService.getAll()
+
+Axios interceptor agrega automáticamente:
+  - Authorization: Bearer <token>
+  - x-csrf-token: <token>
+  - x-api-key: api_key_secreta
+
+Request llega al backend:
+  - Middleware: valida JWT
+  - Extrae usuario_id del JWT
+  - Continúa solo si es válido
+
+Backend ejecuta:
+  - SELECT * FROM tareas WHERE usuario_id = ?
+  - Devuelve JSON
+
+Frontend recibe:
+  - Transforma datos (si es necesario)
+  - Actualiza estado reactivo
+  - Vue re-renderiza sin recargar
+
+PUNTO 5: SERVICIOS DEL BACKEND - AUTENTICACIÓN
+───────────────────────────────────────────────────────────────────────────────
+POST /api/auth/login
+  Input:  { email, password }
+  Output: { token, user: { id, email, nombre, rol } }
+
+POST /api/auth/register
+  Input:  { nombre, email, password }
+  Output: { user: { id, email, nombre } }
+
+GET /api/auth/verify
+  Input:  (JWT en header)
+  Output: { user: { id, email, nombre, rol } }
+
+POST /api/auth/logout
+  Input:  (JWT en header)
+  Output: { success, message }
+
+GET /api/auth/google (OAuth)
+  Inicia flujo de Google
+
+PUNTO 6: SERVICIOS DEL BACKEND - TAREAS
+───────────────────────────────────────────────────────────────────────────────
+GET /api/tareas
+  Output: { data: [ tareas del usuario ], total }
+
+GET /api/tareas/:id
+  Output: { data: { tarea } }
+
+POST /api/tareas
+  Input:  { titulo, descripcion, estado, persona_id, tagIds[] }
+  Output: { data: { tarea creada con ID nuevo } }
+
+PUT /api/tareas/:id
+  Input:  { titulo, descripcion, estado, ... }
+  Output: { data: { tarea actualizada } }
+
+PATCH /api/tareas/:id
+  Input:  { estado: "completada" } (solo lo que cambió)
+  Output: { data: { tarea actualizada } }
+
+DELETE /api/tareas/:id
+  Output: { success, message }
+
+PUNTO 7: SERVICIOS DEL BACKEND - TAGS, PERSONAS, USUARIOS
+───────────────────────────────────────────────────────────────────────────────
+Tags:
+  GET /api/tags
+  POST /api/tags { nombre }
+  PUT /api/tags/:id
+  DELETE /api/tags/:id
+
+Personas:
+  GET /api/personas
+  POST /api/personas { nombre, email }
+  PUT /api/personas/:id
+  DELETE /api/personas/:id
+
+Usuarios (admin only):
+  GET /api/usuarios
+  PATCH /api/usuarios/:id { rol, activo }
+  DELETE /api/usuarios/:id
+
+PUNTO 8: PROTECCIÓN DE SEGURIDAD
+───────────────────────────────────────────────────────────────────────────────
+1. JWT (JSON Web Token)
+   - Contiene: id, email, rol, expiración
+   - Se verifica en cada request
+   - Si expira (24h): redirige a login
+
+2. CSRF Token
+   - Se almacena en cookie HttpOnly
+   - Se valida en cada request POST/PUT/PATCH/DELETE
+   - Previene ataques de falsificación
+
+3. Cookies HTTP-Only
+   - JavaScript no puede leerlas (previene XSS)
+   - Se envían automáticamente en cada request
+   - Solo sobre HTTPS
+
+4. CORS (Cross-Origin Resource Sharing)
+   - Backend solo acepta requests de:
+     * https://localhost:5173 (frontend)
+     * https://localhost:3000 (mismo servidor)
+   - Rechaza requests de otros dominios
+
+5. Validación en Backend
+   - ¿Token válido?
+   - ¿No está expirado?
+   - ¿Usuario es dueño del recurso?
+   - Si falla: devuelve 401 (Unauthorized) o 403 (Forbidden)
+
+PUNTO 9: CÓDIGOS DE RESPUESTA HTTP
+───────────────────────────────────────────────────────────────────────────────
+200 OK
+  → Request exitoso
+
+201 Created
+  → Recurso creado
+
+400 Bad Request
+  → Datos inválidos (falta campo, formato malo)
+
+401 Unauthorized
+  → Token expirado, inválido o falta
+  → Frontend interceptor redirige a /login
+
+403 Forbidden
+  → Usuario no tiene permisos (ej: no es admin)
+
+404 Not Found
+  → Recurso no existe
+
+409 Conflict
+  → Email duplicado, violación de constraint
+
+500 Internal Server Error
+  → Error en servidor
+
+PUNTO 10: CICLO COMPLETO DE UNA ACCIÓN (Crear Tarea)
+───────────────────────────────────────────────────────────────────────────────
+1. Usuario rellena formulario y hace click "Crear"
+2. TareaForm emite evento con datos
+3. tareaService.crear({ titulo, descripcion, ... })
+4. Transforma datos: remueve campos innecesarios
+5. POST /api/tareas con JWT en header
+6. Axios interceptor agrega Authorization + CSRF
+7. Backend authMiddleware valida JWT
+8. Backend extrae usuario_id del JWT
+9. Backend: INSERT INTO tareas (titulo, ..., usuario_id)
+10. Backend devuelve tarea con ID nuevo
+11. Frontend transforma respuesta
+12. Frontend agrega a lista local (tareas.value.push())
+13. Vue detecta cambio en array
+14. Re-renderiza la lista (sin recargar página)
+15. Usuario ve nueva tarea al instante
+
+═══════════════════════════════════════════════════════════════════════════════
+TRANSFORMACIÓN DE DATOS: FRONTEND ↔ BACKEND
+═══════════════════════════════════════════════════════════════════════════════
+
+Backend devuelve:
+{
+  "id": 1,
+  "titulo": "Aprender Vue",
+  "descripcion": "Estudiar documentación",
+  "estado": "pendiente",
+  "usuario_id": 1,
+  "createdAt": "2026-05-14T10:30:00Z",
+  "updatedAt": "2026-05-14T10:30:00Z"
+}
+
+Frontend transforma a:
+{
+  "id": 1,
+  "titulo": "Aprender Vue",
+  "descripcion": "Estudiar documentación",
+  "estado": "pendiente",
+  "completada": false,  ← AGREGADO: (estado === 'completada')
+  "usuario_id": 1,
+  "createdAt": "2026-05-14T10:30:00Z",
+  "updatedAt": "2026-05-14T10:30:00Z"
+}
+
+Cuando Frontend envía:
+{ "completada": false }
+    ↓ (tareaService.toBackend())
+{ "estado": "pendiente" }
+
+═══════════════════════════════════════════════════════════════════════════════
+ARQUITECTURA EN CAPAS
+═══════════════════════════════════════════════════════════════════════════════
+
+CAPA 1: PRESENTACIÓN
+└─ Vue 3 + Vuetify
+└─ Componentes: TareasView, LoginView, TareaForm, etc.
+└─ Manejo de UI y eventos
+
+CAPA 2: LÓGICA DE NEGOCIO
+└─ Services (authService, tareaService, tagService, etc.)
+└─ Transformación de datos
+└─ Validación local
+
+CAPA 3: COMUNICACIÓN
+└─ Axios (HTTP client)
+└─ Interceptores (agregan JWT automáticamente)
+└─ Manejo de errores
+
+CAPA 4: SERVIDOR
+└─ Express (framework web)
+└─ Rutas (endpoints)
+└─ Controladores (lógica)
+└─ Middleware (validación JWT, CORS, etc.)
+
+CAPA 5: DATOS
+└─ MySQL/MariaDB
+└─ Tablas: usuarios, tareas, tags, personas, tarea_tags
+└─ Sequelize (ORM)
+
+═══════════════════════════════════════════════════════════════════════════════
+PUERTO Y URLs
+═══════════════════════════════════════════════════════════════════════════════
+
+Frontend:
+  https://localhost:5173/
+  - LoginView: https://localhost:5173/login
+  - TareasView: https://localhost:5173/
+
+Backend:
+  https://localhost:3000/
+  - Endpoints: https://localhost:3000/api/*
+  - Swagger Docs: https://localhost:3000/api-docs
+
+Database:
+  localhost:3306 (MySQL/MariaDB)
+  User: tareas_user
+  Password: Tareas@2026#Segura
+  Database: tareas_db
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHIVOS IMPORTANTES
+═══════════════════════════════════════════════════════════════════════════════
+
+FRONTEND:
+17marzo26/src/
+├─ main.ts → Inicia Vue app
+├─ App.vue → Componente raíz
+├─ router/index.ts → Rutas + guard
+├─ services/ → authService, tareaService, etc.
+├─ components/ → LoginView, TareaForm, etc.
+└─ views/ → TareasView (lista de tareas)
+
+BACKEND:
+api-tareas-mvc/src/
+├─ server.js → Punto de entrada
+├─ app.js → Configuración Express
+├─ routes/ → Endpoints (auth, tarea, tag, etc.)
+├─ controllers/ → Lógica de cada endpoint
+├─ models/ → Sequelize (Usuario, Tarea, Tag, etc.)
+├─ middleware/ → auth.js (valida JWT)
+├─ config/ → passport.js (OAuth), config.json (BD)
+└─ .env → Variables de entorno
+
+═══════════════════════════════════════════════════════════════════════════════
+CONCLUSIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+El Frontend (Vue) es una SPA (Single Page Application) que:
+1. Muestra componentes visuales
+2. Solicita datos al Backend mediante HTTP
+3. Agrega JWT automáticamente en cada request
+4. Transforma datos localmente
+5. Actualiza la UI reactivamente
+
+El Backend (Express) es una API REST que:
+1. Valida JWT en cada request
+2. Ejecuta la lógica de negocio
+3. Accede a la Base de Datos
+4. Devuelve JSON
+5. Protege datos del usuario (filtra por usuario_id)
+
+TODO está protegido por JWT, CSRF, Cookies HTTP-Only y CORS.
+
+═══════════════════════════════════════════════════════════════════════════════

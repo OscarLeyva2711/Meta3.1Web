@@ -3,9 +3,9 @@
  * Define los endpoints para gestionar personas y sus relaciones
  */
 
-const express = require('express');
-const personaController = require('../controllers/persona.controller');
-const { authenticateToken } = require('../middleware/auth');
+import express from 'express';
+import personaController from '../controllers/persona.controller.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -44,4 +44,4 @@ router.get('/:id/tareas', personaController.obtenerTareas);
 // GET /api/personas/:id/tags - Obtener todos los tags asociados a una persona (indirecto)
 router.get('/:id/tags', personaController.obtenerTags);
 
-module.exports = router;
+export default router;

@@ -3,8 +3,8 @@
  * Maneja las operaciones CRUD de tareas y sus relaciones con Personas y Tags
  */
 
-const db = require('../models');
-const { Op } = require('sequelize');
+import db from '../models/index.js';
+import { Op } from 'sequelize';
 
 function getUsuarioId(req) {
   return req.user?.id;
@@ -562,17 +562,14 @@ const desasignarTag = async (req, res) => {
   }
 };
 
-module.exports = {
-  // CRUD
+export default {
   obtenerTodas,
   obtenerPorId,
   crear,
   actualizarCompleta,
   actualizarParcial,
   eliminar,
-  // Búsquedas
   buscarPorTitulo,
-  // Relaciones
   obtenerTags,
   asignarTag,
   desasignarTag

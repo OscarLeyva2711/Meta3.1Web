@@ -3,8 +3,8 @@
  * Maneja las operaciones CRUD de tags y sus relaciones
  */
 
-const db = require('../models');
-const { Op } = require('sequelize');
+import db from '../models/index.js';
+import { Op } from 'sequelize';
 
 function parseIds(value) {
   if (!value) return [];
@@ -445,16 +445,13 @@ const obtenerPersonas = async (req, res) => {
   }
 };
 
-module.exports = {
-  // CRUD
+export default {
   obtenerTodos,
   obtenerPorId,
   crear,
   actualizar,
   eliminar,
-  // Búsquedas
   buscar,
-  // Relaciones
   obtenerTareas,
   obtenerPersonas
 };

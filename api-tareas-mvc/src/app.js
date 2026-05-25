@@ -2,27 +2,31 @@
  * Configuración de la aplicación Express
  */
 
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
-const swaggerUi = require('swagger-ui-express');
-const session = require('express-session');
-const passport = require('passport');
-const fs = require('fs');
-const path = require('path');
-const YAML = require('yaml');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import swaggerUi from 'swagger-ui-express';
+import session from 'express-session';
+import passport from 'passport';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import YAML from 'yaml';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Importar configuración de Passport
-require('./config/passport');
+import './config/passport.js';
 
-const tareaRoutes = require('./routes/tarea.routes');
-const personaRoutes = require('./routes/persona.routes');
-const tagRoutes = require('./routes/tag.routes');
-const authRoutes = require('./routes/auth.routes');
-const googleAuthRoutes = require('./routes/googleAuth.routes');
-const usuarioRoutes = require('./routes/usuario.routes');
-const db = require('./models'); // Sequelize initialization
+import tareaRoutes from './routes/tarea.routes.js';
+import personaRoutes from './routes/persona.routes.js';
+import tagRoutes from './routes/tag.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import googleAuthRoutes from './routes/googleAuth.routes.js';
+import usuarioRoutes from './routes/usuario.routes.js';
+import db from './models/index.js'; // Sequelize initialization
 
 const app = express();
 
@@ -166,4 +170,4 @@ app._router?.stack?.forEach((middleware, i) => {
   }
 });
 
-module.exports = app;
+export default app;

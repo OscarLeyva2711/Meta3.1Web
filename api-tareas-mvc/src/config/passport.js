@@ -3,9 +3,9 @@
  * Usa el modelo `Usuario` (consistente con el resto del backend).
  */
 
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const db = require('../models');
+import passport from 'passport';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import db from '../models/index.js';
 
 passport.use(new GoogleStrategy(
   {
@@ -65,4 +65,4 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-module.exports = passport;
+export default passport;

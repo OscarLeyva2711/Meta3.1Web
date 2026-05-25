@@ -1,4 +1,5 @@
-const app = require('./src/app');
+import app from './src/app.js';
+import googleAuthRoutes from './src/routes/googleAuth.routes.js';
 
 console.log('=== DEBUG ROUTES ===');
 console.log('App router stack:');
@@ -23,9 +24,8 @@ app._router.stack.forEach((middleware, i) => {
 // Test specific route
 console.log('\n=== TESTING GOOGLE AUTH ROUTE ===');
 try {
-  const googleAuthRoutes = require('./src/routes/googleAuth.routes');
   console.log('Google auth routes loaded successfully');
   console.log('Route stack:', googleAuthRoutes.stack.map(r => r.route?.path || 'N/A'));
 } catch (e) {
-  console.error('Error loading google auth routes:', e.message);
+  console.error('Error testing google auth routes:', e.message);
 }

@@ -2,10 +2,10 @@
  * Rutas de autenticación con Google OAuth
  */
 
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const passport = require('passport');
-const jwt = require('jsonwebtoken');
+import passport from 'passport';
+import jwt from 'jsonwebtoken';
 
 /**
  * GET /api/auth/google/login
@@ -90,4 +90,4 @@ router.get('/google/info', (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

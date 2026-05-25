@@ -3,11 +3,15 @@
  * Levanta servidor HTTPS con certificados autofirmados y sincroniza Sequelize.
  */
 
-const app = require('./src/app');
-const db = require('./src/models');
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
+import app from './src/app.js';
+import db from './src/models/index.js';
+import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
 

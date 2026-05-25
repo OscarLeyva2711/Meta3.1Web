@@ -1,9 +1,9 @@
-const express = require('express');
+import express from 'express';
 const app = express();
 
 // Import routes
-const authRoutes = require('./src/routes/auth.routes');
-const googleAuthRoutes = require('./src/routes/googleAuth.routes');
+import authRoutes from './src/routes/auth.routes.js';
+import googleAuthRoutes from './src/routes/googleAuth.routes.js';
 
 // Use routes
 app.use('/api/auth', authRoutes);

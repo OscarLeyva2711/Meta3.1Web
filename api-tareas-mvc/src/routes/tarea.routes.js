@@ -3,9 +3,9 @@
  * Define los endpoints de la API
  */
 
-const express = require('express');
-const tareaController = require('../controllers/tarea.controller');
-const { authenticateToken } = require('../middleware/auth');
+import express from 'express';
+import tareaController from '../controllers/tarea.controller.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -50,4 +50,4 @@ router.post('/:id/tags/:tagId', tareaController.asignarTag);
 // DELETE /api/tareas/:id/tags/:tagId - Desasignar un tag de una tarea
 router.delete('/:id/tags/:tagId', tareaController.desasignarTag);
 
-module.exports = router;
+export default router;
